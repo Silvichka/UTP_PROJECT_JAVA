@@ -17,14 +17,6 @@ JNIEXPORT jboolean JNICALL Java_Board_00024CheckListener_isValidPieceToSelect
 
 /*
  * Class:     Board_CheckListener
- * Method:    isValidMove
- * Signature: (II)Z
- */
-JNIEXPORT jboolean JNICALL Java_Board_00024CheckListener_isValidMove
-  (JNIEnv *, jobject, jint, jint);
-
-/*
- * Class:     Board_CheckListener
  * Method:    placingPieces
  * Signature: ()[[C
  */
@@ -34,10 +26,10 @@ JNIEXPORT jobjectArray JNICALL Java_Board_00024CheckListener_placingPieces
 /*
  * Class:     Board_CheckListener
  * Method:    move
- * Signature: (IIII)V
+ * Signature: (IIIIZ)V
  */
 JNIEXPORT void JNICALL Java_Board_00024CheckListener_move
-  (JNIEnv *, jobject, jint, jint, jint, jint);
+  (JNIEnv *, jobject, jint, jint, jint, jint, jboolean);
 
 /*
  * Class:     Board_CheckListener
@@ -54,6 +46,38 @@ JNIEXPORT void JNICALL Java_Board_00024CheckListener_removeCaptured
  */
 JNIEXPORT jobject JNICALL Java_Board_00024CheckListener_predictedMoves
   (JNIEnv *, jobject, jint, jint);
+
+/*
+ * Class:     Board_CheckListener
+ * Method:    captureRule
+ * Signature: (II)[I
+ */
+JNIEXPORT jintArray JNICALL Java_Board_00024CheckListener_captureRule
+  (JNIEnv *, jobject, jint, jint);
+
+/*
+ * Class:     Board_CheckListener
+ * Method:    winner
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_Board_00024CheckListener_winner
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     Board_CheckListener
+ * Method:    restart
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_Board_00024CheckListener_restart
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     Board_CheckListener
+ * Method:    displaying
+ * Signature: ()[[C
+ */
+JNIEXPORT jobjectArray JNICALL Java_Board_00024CheckListener_displaying
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

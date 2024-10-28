@@ -27,15 +27,6 @@ public class Board extends JFrame{
         intializeBoard();
         setVisible(true);
 
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    showInGameMenu();
-                }
-            }
-        });
-
         // Ensure the board has focus to listen to key events
         setFocusable(true);
     }
@@ -70,61 +61,23 @@ public class Board extends JFrame{
         }
     }
 
-    private void showInGameMenu() {
-        JDialog inGameMenu = new JDialog(this, "Pause Menu", true);
-        inGameMenu.setSize(300, 200);
-        inGameMenu.setLayout(new GridLayout(3, 1));
+    public void showWinnerDialog(int winner) {
+        String winnerName = winner == 2 ? "White" : "Black";
+        String message = winnerName + " wins!";
 
-        // Resume button
-        JButton resumeButton = new JButton("Resume");
-        resumeButton.setFont(new Font("Arial", Font.PLAIN, 20));
-        resumeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                inGameMenu.dispose();  // Close the menu and resume the game
-            }
-        });
+        // Create a dialog to display the winner and restart option
+        int response = JOptionPane.showConfirmDialog(null, message, "Game Over", JOptionPane.OK_CANCEL_OPTION);
 
-        // Restart button
-        JButton restartButton = new JButton("Restart");
-        restartButton.setFont(new Font("Arial", Font.PLAIN, 20));
-        restartButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                resetBoard();  // Reset the game board
-                inGameMenu.dispose();  // Close the menu
-            }
-        });
-
-        // Quit button
-        JButton quitButton = new JButton("Quit");
-        quitButton.setFont(new Font("Arial", Font.PLAIN, 20));
-        quitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);  // Exit the game
-            }
-        });
-
-        inGameMenu.add(resumeButton);
-        inGameMenu.add(restartButton);
-        inGameMenu.add(quitButton);
-
-        inGameMenu.setLocationRelativeTo(this);  // Center the menu on the screen
-        inGameMenu.setVisible(true);
+        // If the user clicks the "OK" button, restart the game
+        if (response == JOptionPane.OK_OPTION) {
+            restartGame();
+        }
     }
 
-    private void resetBoard() {
-        for (int row = 0; row < SIZE; row++) {
-            for (int col = 0; col < SIZE; col++) {
-                if ((row + col) % 2 == 0) {
-                    board[row][col].setBackground(Color.WHITE);
-                } else {
-                    board[row][col].setBackground(Color.BLACK);
-                    board[row][col].setText("");  // Clear any pieces
-                }
-            }
-        }
+    public void restartGame() {
+        SwingUtilities.invokeLater(Board::new); // Reset the board
+        System.out.println("Game restarted!");
+        CheckListener.restart();// Placeholder for your game restart logic
     }
 
     private class CheckListener implements ActionListener{
@@ -146,81 +99,177 @@ public class Board extends JFrame{
                 }else if(isValidPieceToSelect(row, col)) {
                     HashMap<String, int[][]> predicts = predictedMoves(row, col);
                     selectedButton = clicked;
-                    System.out.println("color - " + selectedButton.getColor());
-                    for (int[][] predictedMove : predicts.values()) {
-                        for(int[] inner : predictedMove) {
-                            int move_row = inner[0];
-                            int move_col = inner[1];
-                            System.out.println(move_row + " " + move_col + " ");
-                            board[move_row][move_col].setBackground(Color.yellow);
-                        }
-                    }
+//                    System.out.println("color - " + selectedButton.getColor());
+                    highlightPredictedMoves(predicts);
                 }
             }else{
+                clearPredictedMoves();
+
                 HashMap<String, int[][]> predicts= predictedMoves(selectedButton.getRow(), selectedButton.getColumn());
-                if (predicts.get("regular_moves").length != 0 || predicts.get("captures").length != 0){
-                    movePiece(clicked, predicts);
-                    for (int[][] predictedMove : predicts.values()) {
-                        for (int[] inner : predictedMove){
-                            int move_row = inner[0];
-                            int move_col = inner[1];
-                            board[move_row][move_col].setBackground(Color.lightGray);
-                        }
+                int[][] captureMoves = predicts.get("captures");
+//                System.out.println(Arrays.toString(captureRule(clicked.getRow(), clicked.getColumn())));
+                int[] captRule = captureRule(clicked.getRow(), clicked.getColumn());
+
+                if (isDestInMoves(clicked, captureMoves, predicts.get("regular_moves"))) {
+                    // Player has chosen a valid move
+                    if (captureMoves.length > 0 && !isDestInMoves(clicked, captureMoves, new int[0][])) {
+                        // Penalize the player if a capture is possible but they selected a non-capture move
+//                        System.out.println("Capture available but not chosen. Removing piece as penalty.");
+//                        move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
+                        selectedButton.removeIcon();
+                        removeCaptured(selectedButton.getRow(), selectedButton.getColumn());
+                    } else if(captRule.length != 0 && (selectedButton.getRow() != captRule[0] && selectedButton.getColumn() != captRule[1])){
+                        board[captRule[0]][captRule[1]].removeIcon();
+                        removeCaptured(captRule[0], captRule[1]);
+                        movePiece(clicked, predicts);
+                    }else {
+                        movePiece(clicked, predicts);
                     }
-                }else {
-                    selectedButton.setBackground(Color.lightGray);
-                    selectedButton = null;
+                }
+                selectedButton = null;
+                if(winner() != 0){
+                    showWinnerDialog(winner());
                 }
             }
         }
 
         private void movePiece(Cell destButton, HashMap<String, int[][]> predicts) {
-            if (destButton != selectedButton) {
-                int[][] tempRegs = predicts.get("regular_moves");
-                for(int i = 0; i < tempRegs.length; i++){
-                    if (destButton.getRow() == tempRegs[i][0] && destButton.getColumn() == tempRegs[i][1]){
-                        char selectedColor = selectedButton.getColor();
-                        if (selectedColor == 'W' || selectedColor == 'Q') {
-                            destButton.setButtonWhitePiece();
-                            selectedButton.removeIcon();
-                        } else if (selectedColor == 'B' || selectedColor == 'K') {
-                            destButton.setButtonBlackPiece();
+            int[][] tempRegs = predicts.get("regular_moves");
+            int[][] tempCaps = predicts.get("captures");
+
+            if (destButton != selectedButton && isDestInMoves(destButton, tempCaps, tempRegs)) {
+                if (tempCaps.length != 0) {
+                    // Capture move
+                    int capturedRow = (selectedButton.getRow() + destButton.getRow()) / 2;
+                    int capturedCol = (selectedButton.getColumn() + destButton.getColumn()) / 2;
+
+                    // Remove the captured piece from the board
+                    board[capturedRow][capturedCol].removeIcon();
+                    removeCaptured(capturedRow, capturedCol);
+
+                    // Move the selected piece to the new destination
+                    char selectedColor = selectedButton.getColor();
+                    if (selectedColor == 'W') {
+                        destButton.setButtonWhitePiece();
+                    } else if (selectedColor == 'B') {
+                        destButton.setButtonBlackPiece();
+                    }
+                    selectedButton.removeIcon();
+
+                    // Update the board with the move
+                    System.out.println(selectedButton.getRow() + "" + selectedButton.getColumn() +""+ destButton.getRow() +""+ destButton.getColumn());
+                    move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), false);
+                    selectedButton = destButton;  // Keep the selected button as the new destination
+
+                    // Check for additional captures from the new position
+                    HashMap<String, int[][]> additionalCaptures = predictedMoves(destButton.getRow(), destButton.getColumn());
+                    if (additionalCaptures.get("captures").length > 0) {
+                        highlightPredictedMoves(additionalCaptures);  // Highlight further captures
+                        return;  // Hold the turn for additional captures
+                    } else {
+                        move(0,0,0,0, true);
+                    }
+                } else {
+                    // Regular move (non-capturing)
+                    for (int i = 0; i < tempRegs.length; i++) {
+                        if (destButton.getRow() == tempRegs[i][0] && destButton.getColumn() == tempRegs[i][1]) {
+                            char selectedColor = selectedButton.getColor();
+                            if (selectedColor == 'W') {
+                                destButton.setButtonWhitePiece();
+                            } else if (selectedColor == 'B') {
+                                destButton.setButtonBlackPiece();
+                            }
                             selectedButton.removeIcon();
                         }
                     }
+
+                    // Update the board with the move
+                    move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), true);
                 }
-                int[][] tempCaps = predicts.get("captures");
-                if(tempCaps.length != 0) {
-                    for (int i = 0; i < tempCaps.length; i++) {
-                        int capturedRow = (selectedButton.getRow() + destButton.getRow()) / 2;
-                        int capturedCol = (selectedButton.getColumn() + destButton.getColumn()) / 2;
+            }
+            selectedButton = null;  // Reset the selected button if no additional captures
+            clearPredictedMoves();   // Clear highlighted moves
 
-                        // Remove the captured piece from the board
-                        board[capturedRow][capturedCol].removeIcon();
-                        board[capturedRow][capturedCol].setBackground(Color.lightGray);
-                        removeCaptured(capturedRow, capturedCol);
+            // Check for winner after the turn is completed
+            if (winner() != 0) {
+                showWinnerDialog(winner());
+            }
 
-                        char selectedColor = selectedButton.getColor();
-                        if (selectedColor == 'W' || selectedColor == 'Q') {
-                            destButton.setButtonWhitePiece();
-                            selectedButton.removeIcon();
-                        } else if (selectedColor == 'B' || selectedColor == 'K') {
-                            destButton.setButtonBlackPiece();
-                            selectedButton.removeIcon();
-                        }
+            display();
+        }
+
+
+        private boolean isDestInMoves(Cell dest, int[][] caps, int[][] regs){
+            for(int[] x : caps){
+                if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
+            }
+            for(int[] x : regs){
+                if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
+            }
+            return false;
+        }
+
+        private void clearPredictedMoves() {
+            for (int row = 0; row < SIZE; row++) {
+                for (int col = 0; col < SIZE; col++) {
+                    if ((row + col) % 2 == 1) {
+                        board[row][col].setBackground(Color.lightGray);
                     }
                 }
-
-                move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn());
             }
         }
 
+        private void highlightPredictedMoves(HashMap<String, int[][]> predicts) {
+            for (int[][] predictedMove : predicts.values()) {
+                for (int[] inner : predictedMove) {
+                    int move_row = inner[0];
+                    int move_col = inner[1];
+                    board[move_row][move_col].setBackground(Color.yellow);
+                }
+            }
+        }
+
+        private void display(){
+            char[][] c = displaying();
+
+            for(char[] x : c){
+                for(char y : x){
+                    System.out.print(y);
+                }
+                System.out.println();
+            }
+            System.out.println();
+            System.out.println();
+        }
+
+        private int winner(){
+            int white = 0;
+            int black = 0;
+
+            for (Cell[] x : board){
+                for(Cell c : x){
+                    if(c.getColor() == 'W')white++;
+                    if(c.getColor() == 'B')black++;
+                }
+            }
+
+            if(black == 0){
+                return 2;//if white wins
+            }else if(white == 0){
+                return 1;//if black wins
+            }
+            return 0;
+        }
+
         private native boolean isValidPieceToSelect(int row, int col);
-        private native boolean isValidMove(int destRow, int destCol);
         private static native char[][] placingPieces();
-        private native void move(int from_row, int from_col, int to_row, int to_col);
+        private native void move(int from_row, int from_col, int to_row, int to_col, boolean changeTurn);
         private native void removeCaptured(int row, int col);
         private native HashMap<String, int[][]> predictedMoves(int row, int col);
+        private native int[] captureRule(int rowDest, int colDest);
+        private static native void restart();
+
+        private native char[][] displaying();
 
     }
 }
