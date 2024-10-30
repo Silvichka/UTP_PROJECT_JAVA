@@ -1,3 +1,5 @@
+package main;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -25,7 +27,6 @@ public class Board extends JFrame{
         setVisible(true);
         setFocusable(true);
 
-        // Initialize keyboard navigation by adding a KeyListener
         addKeyListener(new KeyAdapter() {
             private int selectedRow = 0;
             private int selectedCol = 0;
@@ -139,7 +140,7 @@ public class Board extends JFrame{
         CheckListener.restart();// Placeholder for your game restart logic
     }
 
-    private class CheckListener implements ActionListener{
+    public class CheckListener implements ActionListener{
 
         int row, col;
 
@@ -170,9 +171,7 @@ public class Board extends JFrame{
                 int[] captRule = captureRule(clicked.getRow(), clicked.getColumn());
 
                 if (isDestInMoves(clicked, captureMoves, predicts.get("regular_moves"))) {
-                    // Player has chosen a valid move
                     if (captureMoves.length > 0 && !isDestInMoves(clicked, captureMoves, new int[0][])) {
-                        // Penalize the player if a capture is possible but they selected a non-capture move
 //                        System.out.println("Capture available but not chosen. Removing piece as penalty.");
                         move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
                         selectedButton.removeIcon();
@@ -198,15 +197,12 @@ public class Board extends JFrame{
 
             if (destButton != selectedButton && isDestInMoves(destButton, tempCaps, tempRegs)) {
                 if (tempCaps.length != 0) {
-                    // Capture move
                     int capturedRow = (selectedButton.getRow() + destButton.getRow()) / 2;
                     int capturedCol = (selectedButton.getColumn() + destButton.getColumn()) / 2;
 
-                    // Remove the captured piece from the board
                     board[capturedRow][capturedCol].removeIcon();
                     removeCaptured(capturedRow, capturedCol);
 
-                    // Move the selected piece to the new destination
                     char selectedColor = selectedButton.getColor();
                     if (selectedColor == 'W') {
                         destButton.setButtonWhitePiece();
@@ -215,7 +211,6 @@ public class Board extends JFrame{
                     }
                     selectedButton.removeIcon();
 
-                    // Update the board with the move
                     System.out.println(selectedButton.getRow() + "" + selectedButton.getColumn() +""+ destButton.getRow() +""+ destButton.getColumn());
                     move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), false);
                     selectedButton = destButton;  // Keep the selected button as the new destination
