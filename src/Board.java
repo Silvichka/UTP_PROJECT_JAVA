@@ -4,10 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 public class Board extends JFrame{
 
@@ -16,7 +13,7 @@ public class Board extends JFrame{
     private Cell[][] board;
     private Cell selectedButton;
 
-    public Board(){
+    public Board() {
         setTitle("Checkers");
         setSize(800, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -26,9 +23,71 @@ public class Board extends JFrame{
         board = new Cell[SIZE][SIZE];
         intializeBoard();
         setVisible(true);
-
-        // Ensure the board has focus to listen to key events
         setFocusable(true);
+
+        // Initialize keyboard navigation by adding a KeyListener
+        addKeyListener(new KeyAdapter() {
+            private int selectedRow = 0;
+            private int selectedCol = 0;
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_UP:
+                        moveSelection(-1, 0); // Move up
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        moveSelection(1, 0); // Move down
+                        break;
+                    case KeyEvent.VK_LEFT:
+                        moveSelection(0, -1); // Move left
+                        break;
+                    case KeyEvent.VK_RIGHT:
+                        moveSelection(0, 1); // Move right
+                        break;
+                    case KeyEvent.VK_ENTER:
+                        handleSelection(); // Handle selection or move
+                        break;
+                }
+            }
+
+            // Update selected cell with arrow key navigation
+            private void moveSelection(int rowOffset, int colOffset) {
+                int newRow = selectedRow + rowOffset;
+                int newCol = selectedCol + colOffset;
+
+                // Ensure new position is within board bounds
+                if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE) {
+                    // Reset background of the previous cell
+                    resetHighlight(selectedRow, selectedCol);
+
+                    // Update selected position
+                    selectedRow = newRow;
+                    selectedCol = newCol;
+
+                    // Highlight the new selected cell
+                    highlightCell(selectedRow, selectedCol);
+                }
+            }
+
+            private void handleSelection() {
+                Cell selectedCell = board[selectedRow][selectedCol];
+                // Simulate click on the cell
+                selectedCell.doClick();
+            }
+        });
+    }
+
+    private void highlightCell(int row, int col) {
+        board[row][col].setBackground(Color.blue); // Highlight with a different color
+    }
+
+    private void resetHighlight(int row, int col) {
+        if ((row + col) % 2 == 1) {
+            board[row][col].setBackground(Color.lightGray);
+        } else {
+            board[row][col].setBackground(Color.WHITE);
+        }
     }
 
     public void intializeBoard(){
@@ -115,7 +174,7 @@ public class Board extends JFrame{
                     if (captureMoves.length > 0 && !isDestInMoves(clicked, captureMoves, new int[0][])) {
                         // Penalize the player if a capture is possible but they selected a non-capture move
 //                        System.out.println("Capture available but not chosen. Removing piece as penalty.");
-//                        move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
+                        move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
                         selectedButton.removeIcon();
                         removeCaptured(selectedButton.getRow(), selectedButton.getColumn());
                     } else if(captRule.length != 0 && (selectedButton.getRow() != captRule[0] && selectedButton.getColumn() != captRule[1])){
@@ -169,7 +228,7 @@ public class Board extends JFrame{
                     } else {
                         move(0,0,0,0, true);
                     }
-                } else {
+                } else if(!isBackwardMove(destButton)){
                     // Regular move (non-capturing)
                     for (int i = 0; i < tempRegs.length; i++) {
                         if (destButton.getRow() == tempRegs[i][0] && destButton.getColumn() == tempRegs[i][1]) {
@@ -197,7 +256,6 @@ public class Board extends JFrame{
 
             display();
         }
-
 
         private boolean isDestInMoves(Cell dest, int[][] caps, int[][] regs){
             for(int[] x : caps){
@@ -259,6 +317,15 @@ public class Board extends JFrame{
                 return 1;//if black wins
             }
             return 0;
+        }
+
+        private boolean isBackwardMove(Cell destButton) {
+            if (selectedButton.getColor() == 'W') {
+                return destButton.getRow() > selectedButton.getRow();
+            } else if (selectedButton.getColor() == 'B') {
+                return destButton.getRow() < selectedButton.getRow();
+            }
+            return false;
         }
 
         private native boolean isValidPieceToSelect(int row, int col);
