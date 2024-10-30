@@ -57,19 +57,11 @@ JNIEXPORT jintArray JNICALL Java_Board_00024CheckListener_captureRule
 
 /*
  * Class:     Board_CheckListener
- * Method:    winner
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_Board_00024CheckListener_winner
-  (JNIEnv *, jobject);
-
-/*
- * Class:     Board_CheckListener
  * Method:    restart
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_Board_00024CheckListener_restart
-  (JNIEnv *, jobject);
+  (JNIEnv *, jclass);
 
 /*
  * Class:     Board_CheckListener
