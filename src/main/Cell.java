@@ -1,3 +1,5 @@
+package main;
+
 import javax.swing.*;
 
 public class Cell extends JButton {
@@ -13,13 +15,13 @@ public class Cell extends JButton {
     }
 
     public void setButtonWhitePiece(){
-        ImageIcon icon = new ImageIcon("/Users/silvia/JavaProjects/UTP/Project/src/white_piece.png");
+        ImageIcon icon = new ImageIcon("/Users/silvia/JavaProjects/UTP/Project/src/main/white_piece.png");
         this.setIcon(icon);
         color = 'W';
     }
 
     public void setButtonBlackPiece(){
-        ImageIcon icon = new ImageIcon("/Users/silvia/JavaProjects/UTP/Project/src/black_piece.png");
+        ImageIcon icon = new ImageIcon("/Users/silvia/JavaProjects/UTP/Project/src/main/black_piece.png");
         this.setIcon(icon);
         color = 'B';
     }
