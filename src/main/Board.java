@@ -25,8 +25,10 @@ public class Board extends JFrame{
         setVisible(true);
         setFocusable(true);
 
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
+        requestFocus();
         initializeKeyboardControls();
-//        initializeMouseControls();
     }
 
     private void initializeKeyboardControls() {
@@ -89,12 +91,14 @@ public class Board extends JFrame{
         isKeyboardMode = true;
         clearPredictedMoves();
         selectedButton = null;
+        requestFocus();
     }
 
     private void switchToMouseMode() {
         isKeyboardMode = false;
         clearPredictedMoves();
         selectedButton = null;
+        requestFocus();
     }
 
     private void highlightCell(int row, int col) {
@@ -131,6 +135,7 @@ public class Board extends JFrame{
                     button.setButtonBlackPiece();
                 }
 
+                button.setFocusable(false);
                 button.addActionListener(new CheckListener(row, col));
 
                 board[row][col] = button;
@@ -338,7 +343,9 @@ public class Board extends JFrame{
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(isKeyboardMode)switchToMouseMode();
+            if(isKeyboardMode) {
+                switchToMouseMode();
+            }
             Cell clicked = board[row][col];
 
             if (selectedButton == null){
