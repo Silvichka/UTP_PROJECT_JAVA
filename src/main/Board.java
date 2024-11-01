@@ -27,9 +27,6 @@ public class Board extends JFrame{
         setVisible(true);
         setFocusable(true);
 
-    }
-
-    public void ControlSystem(){
         addKeyListener(new KeyAdapter() {
             private int selectedRow = 0;
             private int selectedCol = 0;
@@ -80,7 +77,6 @@ public class Board extends JFrame{
                 selectedCell.doClick();
             }
         });
-
     }
 
     private void highlightCell(int row, int col) {
@@ -300,7 +296,7 @@ public class Board extends JFrame{
     public native void removeCaptured(int row, int col);
     public native HashMap<String, int[][]> predictedMoves(int row, int col);
     public native int[] captureRule(int rowDest, int colDest);
-    public static native void restart();
+    public native void restart();
     public native char[][] displaying();
     public native boolean getTurn();
 

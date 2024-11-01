@@ -129,7 +129,7 @@ JNIEXPORT jintArray JNICALL Java_main_Board_captureRule
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_main_Board_restart
-  (JNIEnv *, jclass);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     main_Board
