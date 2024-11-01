@@ -27,6 +27,9 @@ public class Board extends JFrame{
         setVisible(true);
         setFocusable(true);
 
+    }
+
+    public void ControlSystem(){
         addKeyListener(new KeyAdapter() {
             private int selectedRow = 0;
             private int selectedCol = 0;
@@ -77,6 +80,7 @@ public class Board extends JFrame{
                 selectedCell.doClick();
             }
         });
+
     }
 
     private void highlightCell(int row, int col) {
@@ -93,7 +97,7 @@ public class Board extends JFrame{
 
     public void intializeBoard(){
 
-        char[][] tempBoard = CheckListener.placingPieces();
+        char[][] tempBoard = placingPieces();
 
         for (int row = 0; row < SIZE; row++){
             for (int col = 0; col < SIZE; col++){
@@ -137,8 +141,177 @@ public class Board extends JFrame{
     public void restartGame() {
         SwingUtilities.invokeLater(Board::new); // Reset the board
         System.out.println("Game restarted!");
-        CheckListener.restart();// Placeholder for your game restart logic
+        restart();// Placeholder for your game restart logic
     }
+
+    public void movePiece(Cell destButton, HashMap<String, int[][]> predicts) {
+        int[][] tempRegs = predicts.get("regular_moves");
+        int[][] tempCaps = predicts.get("captures");
+
+        if (destButton != selectedButton && isDestInMoves(destButton, tempCaps, tempRegs)) {
+            if (tempCaps.length != 0) {
+                int capturedRow = (selectedButton.getRow() + destButton.getRow()) / 2;
+                int capturedCol = (selectedButton.getColumn() + destButton.getColumn()) / 2;
+
+                board[capturedRow][capturedCol].removeIcon();
+                removeCaptured(capturedRow, capturedCol);
+
+                char selectedColor = selectedButton.getColor();
+                if (selectedColor == 'W') {
+                    destButton.setButtonWhitePiece();
+                } else if (selectedColor == 'B') {
+                    destButton.setButtonBlackPiece();
+                }
+                selectedButton.removeIcon();
+
+//                System.out.println(selectedButton.getRow() + "" + selectedButton.getColumn() +""+ destButton.getRow() +""+ destButton.getColumn());
+                move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), false);
+                selectedButton = destButton;
+
+                HashMap<String, int[][]> additionalCaptures = predictedMoves(destButton.getRow(), destButton.getColumn());
+                if (additionalCaptures.get("captures").length > 0) {
+                    highlightPredictedMoves(additionalCaptures);
+                    return;
+                } else {
+                    move(0,0,0,0, true);
+                }
+            } else if(!isBackwardMove(destButton)){
+                for (int i = 0; i < tempRegs.length; i++) {
+                    if (destButton.getRow() == tempRegs[i][0] && destButton.getColumn() == tempRegs[i][1]) {
+                        char selectedColor = selectedButton.getColor();
+                        if (selectedColor == 'W') {
+                            destButton.setButtonWhitePiece();
+                        } else if (selectedColor == 'B') {
+                            destButton.setButtonBlackPiece();
+                        }
+                        selectedButton.removeIcon();
+                    }
+                }
+
+                move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), true);
+            }
+        }
+        selectedButton = null;  // Reset the selected button if no additional captures
+        clearPredictedMoves();   // Clear highlighted moves
+
+        if (winner() != 0) {
+            showWinnerDialog(winner());
+        }
+
+//        displayJava();
+    }
+
+    public boolean isDestInMoves(Cell dest, int[][] caps, int[][] regs){
+        for(int[] x : caps){
+            if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
+        }
+        for(int[] x : regs){
+            if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
+        }
+        return false;
+    }
+
+    public void clearPredictedMoves() {
+        for (int row = 0; row < SIZE; row++) {
+            for (int col = 0; col < SIZE; col++) {
+                if ((row + col) % 2 == 1) {
+                    board[row][col].setBackground(Color.lightGray);
+                }
+            }
+        }
+    }
+
+    public void highlightPredictedMoves(HashMap<String, int[][]> predicts) {
+        for (int[][] predictedMove : predicts.values()) {
+            for (int[] inner : predictedMove) {
+                int move_row = inner[0];
+                int move_col = inner[1];
+                board[move_row][move_col].setBackground(Color.yellow);
+            }
+        }
+    }
+
+    public void displayJava(){
+        char[][] c = displaying();
+
+        for(char[] x : c){
+            for(char y : x){
+                System.out.print(y);
+            }
+            System.out.println();
+        }
+        System.out.println();
+        System.out.println();
+    }
+
+    public int winner(){
+        int white = 0;
+        int black = 0;
+
+        for (Cell[] x : board){
+            for(Cell c : x){
+                if(c.getColor() == 'W')white++;
+                if(c.getColor() == 'B')black++;
+            }
+        }
+
+        if(black == 0){
+            return 2;//if white wins
+        }else if(white == 0){
+            return 1;//if black wins
+        }
+        return 0;
+    }
+
+    public boolean isBackwardMove(Cell destButton) {
+        if (selectedButton.getColor() == 'W') {
+            return destButton.getRow() > selectedButton.getRow();
+        } else if (selectedButton.getColor() == 'B') {
+            return destButton.getRow() < selectedButton.getRow();
+        }
+        return false;
+    }
+
+    public void checkingCapturesRules(Cell clicked){
+        HashMap<String, int[][]> predicts= predictedMoves(selectedButton.getRow(), selectedButton.getColumn());
+        int[][] captureMoves = predicts.get("captures");
+//                System.out.println(Arrays.toString(captureRule(clicked.getRow(), clicked.getColumn())));
+        int[] captRule = captureRule(clicked.getRow(), clicked.getColumn());
+
+        if (isDestInMoves(clicked, captureMoves, predicts.get("regular_moves"))) {
+            if (captureMoves.length > 0 && !isDestInMoves(clicked, captureMoves, new int[0][])) {
+//                        System.out.println("Capture available but not chosen. Removing piece as penalty.");
+                move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
+                selectedButton.removeIcon();
+                removeCaptured(selectedButton.getRow(), selectedButton.getColumn());
+            } else if(captRule.length != 0 && (selectedButton.getRow() != captRule[0] && selectedButton.getColumn() != captRule[1])){
+                board[captRule[0]][captRule[1]].removeIcon();
+                removeCaptured(captRule[0], captRule[1]);
+                movePiece(clicked, predicts);
+            }else {
+                movePiece(clicked, predicts);
+            }
+        }
+    }
+
+    public native boolean isValidPieceToSelect(int row, int col);
+    public static native char[][] placingPieces();
+    public native void move(int from_row, int from_col, int to_row, int to_col, boolean changeTurn);
+    public native void removeCaptured(int row, int col);
+    public native HashMap<String, int[][]> predictedMoves(int row, int col);
+    public native int[] captureRule(int rowDest, int colDest);
+    public static native void restart();
+    public native char[][] displaying();
+    public native boolean getTurn();
+
+    //methods for tests
+    public Cell[][] displayBoardTest(){
+        return board;
+    }
+    public void setSelectedButton(Cell selected){
+        selectedButton = selected;
+    }
+
 
     public class CheckListener implements ActionListener{
 
@@ -165,173 +338,14 @@ public class Board extends JFrame{
             }else{
                 clearPredictedMoves();
 
-                HashMap<String, int[][]> predicts= predictedMoves(selectedButton.getRow(), selectedButton.getColumn());
-                int[][] captureMoves = predicts.get("captures");
-//                System.out.println(Arrays.toString(captureRule(clicked.getRow(), clicked.getColumn())));
-                int[] captRule = captureRule(clicked.getRow(), clicked.getColumn());
+                checkingCapturesRules(clicked);
 
-                if (isDestInMoves(clicked, captureMoves, predicts.get("regular_moves"))) {
-                    if (captureMoves.length > 0 && !isDestInMoves(clicked, captureMoves, new int[0][])) {
-//                        System.out.println("Capture available but not chosen. Removing piece as penalty.");
-                        move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
-                        selectedButton.removeIcon();
-                        removeCaptured(selectedButton.getRow(), selectedButton.getColumn());
-                    } else if(captRule.length != 0 && (selectedButton.getRow() != captRule[0] && selectedButton.getColumn() != captRule[1])){
-                        board[captRule[0]][captRule[1]].removeIcon();
-                        removeCaptured(captRule[0], captRule[1]);
-                        movePiece(clicked, predicts);
-                    }else {
-                        movePiece(clicked, predicts);
-                    }
-                }
                 selectedButton = null;
                 if(winner() != 0){
                     showWinnerDialog(winner());
                 }
             }
         }
-
-        private void movePiece(Cell destButton, HashMap<String, int[][]> predicts) {
-            int[][] tempRegs = predicts.get("regular_moves");
-            int[][] tempCaps = predicts.get("captures");
-
-            if (destButton != selectedButton && isDestInMoves(destButton, tempCaps, tempRegs)) {
-                if (tempCaps.length != 0) {
-                    int capturedRow = (selectedButton.getRow() + destButton.getRow()) / 2;
-                    int capturedCol = (selectedButton.getColumn() + destButton.getColumn()) / 2;
-
-                    board[capturedRow][capturedCol].removeIcon();
-                    removeCaptured(capturedRow, capturedCol);
-
-                    char selectedColor = selectedButton.getColor();
-                    if (selectedColor == 'W') {
-                        destButton.setButtonWhitePiece();
-                    } else if (selectedColor == 'B') {
-                        destButton.setButtonBlackPiece();
-                    }
-                    selectedButton.removeIcon();
-
-                    System.out.println(selectedButton.getRow() + "" + selectedButton.getColumn() +""+ destButton.getRow() +""+ destButton.getColumn());
-                    move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), false);
-                    selectedButton = destButton;  // Keep the selected button as the new destination
-
-                    // Check for additional captures from the new position
-                    HashMap<String, int[][]> additionalCaptures = predictedMoves(destButton.getRow(), destButton.getColumn());
-                    if (additionalCaptures.get("captures").length > 0) {
-                        highlightPredictedMoves(additionalCaptures);  // Highlight further captures
-                        return;  // Hold the turn for additional captures
-                    } else {
-                        move(0,0,0,0, true);
-                    }
-                } else if(!isBackwardMove(destButton)){
-                    // Regular move (non-capturing)
-                    for (int i = 0; i < tempRegs.length; i++) {
-                        if (destButton.getRow() == tempRegs[i][0] && destButton.getColumn() == tempRegs[i][1]) {
-                            char selectedColor = selectedButton.getColor();
-                            if (selectedColor == 'W') {
-                                destButton.setButtonWhitePiece();
-                            } else if (selectedColor == 'B') {
-                                destButton.setButtonBlackPiece();
-                            }
-                            selectedButton.removeIcon();
-                        }
-                    }
-
-                    // Update the board with the move
-                    move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), true);
-                }
-            }
-            selectedButton = null;  // Reset the selected button if no additional captures
-            clearPredictedMoves();   // Clear highlighted moves
-
-            // Check for winner after the turn is completed
-            if (winner() != 0) {
-                showWinnerDialog(winner());
-            }
-
-            display();
-        }
-
-        private boolean isDestInMoves(Cell dest, int[][] caps, int[][] regs){
-            for(int[] x : caps){
-                if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
-            }
-            for(int[] x : regs){
-                if(dest.getRow() == x[0] && dest.getColumn() == x[1])return true;
-            }
-            return false;
-        }
-
-        private void clearPredictedMoves() {
-            for (int row = 0; row < SIZE; row++) {
-                for (int col = 0; col < SIZE; col++) {
-                    if ((row + col) % 2 == 1) {
-                        board[row][col].setBackground(Color.lightGray);
-                    }
-                }
-            }
-        }
-
-        private void highlightPredictedMoves(HashMap<String, int[][]> predicts) {
-            for (int[][] predictedMove : predicts.values()) {
-                for (int[] inner : predictedMove) {
-                    int move_row = inner[0];
-                    int move_col = inner[1];
-                    board[move_row][move_col].setBackground(Color.yellow);
-                }
-            }
-        }
-
-        private void display(){
-            char[][] c = displaying();
-
-            for(char[] x : c){
-                for(char y : x){
-                    System.out.print(y);
-                }
-                System.out.println();
-            }
-            System.out.println();
-            System.out.println();
-        }
-
-        private int winner(){
-            int white = 0;
-            int black = 0;
-
-            for (Cell[] x : board){
-                for(Cell c : x){
-                    if(c.getColor() == 'W')white++;
-                    if(c.getColor() == 'B')black++;
-                }
-            }
-
-            if(black == 0){
-                return 2;//if white wins
-            }else if(white == 0){
-                return 1;//if black wins
-            }
-            return 0;
-        }
-
-        private boolean isBackwardMove(Cell destButton) {
-            if (selectedButton.getColor() == 'W') {
-                return destButton.getRow() > selectedButton.getRow();
-            } else if (selectedButton.getColor() == 'B') {
-                return destButton.getRow() < selectedButton.getRow();
-            }
-            return false;
-        }
-
-        private native boolean isValidPieceToSelect(int row, int col);
-        private static native char[][] placingPieces();
-        private native void move(int from_row, int from_col, int to_row, int to_col, boolean changeTurn);
-        private native void removeCaptured(int row, int col);
-        private native HashMap<String, int[][]> predictedMoves(int row, int col);
-        private native int[] captureRule(int rowDest, int colDest);
-        private static native void restart();
-
-        private native char[][] displaying();
 
     }
 }
