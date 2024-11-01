@@ -83,7 +83,6 @@ unordered_map<string,vector<vector<int>>> MovePrediction(int row, int col) {
     captureDirections = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
   }
 
-  // Add forward-only moves for non-captures
   for (const auto& dir : forwardDirections) {
     int newRow = row + dir.first;
     int newCol = col + dir.second;
@@ -93,7 +92,6 @@ unordered_map<string,vector<vector<int>>> MovePrediction(int row, int col) {
     }
   }
 
-  // Add all capture moves, including backward
   for (const auto& dir : captureDirections) {
     int adjacentRow = row + dir.first;
     int adjacentCol = col + dir.second;
@@ -183,37 +181,32 @@ JNIEXPORT jobject JNICALL Java_main_Board_predictedMoves
 
   unordered_map<string, vector<vector<int>>> moves = MovePrediction(jrow, jcol);
 
-  // Find the HashMap class and constructor
   jclass hashMapClass = env->FindClass("java/util/HashMap");
   jmethodID hashMapConstructor = env->GetMethodID(hashMapClass, "<init>", "()V");
   jmethodID hashMapPut = env->GetMethodID(hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 
-  // Create a new HashMap instance
   jobject resultMap = env->NewObject(hashMapClass, hashMapConstructor);
 
-  // Loop over the unordered_map to populate the HashMap
   for (const auto& entry : moves) {
     const string& key = entry.first;
     const vector<vector<int>>& moveList = entry.second;
 
-    // Create a new 2D jobjectArray for the moves
     jobjectArray javaMoveArray = env->NewObjectArray(moveList.size(), env->GetObjectClass(env->NewIntArray(2)), nullptr);
 
-    // Fill the 2D array
     for (size_t i = 0; i < moveList.size(); ++i) {
-      jintArray movePair = env->NewIntArray(2);  // Array to hold row and column
-      env->SetIntArrayRegion(movePair, 0, 2, moveList[i].data());  // Set the values
-      env->SetObjectArrayElement(javaMoveArray, i, movePair);  // Add to the 2D array
-      env->DeleteLocalRef(movePair);  // Release local reference
+      jintArray movePair = env->NewIntArray(2);
+      env->SetIntArrayRegion(movePair, 0, 2, moveList[i].data());
+      env->SetObjectArrayElement(javaMoveArray, i, movePair);
+      env->DeleteLocalRef(movePair);
     }
 
-    // Convert key to Java String
+
     jstring javaKey = env->NewStringUTF(key.c_str());
 
-    // Put the key and the 2D array into the HashMap
+
     env->CallObjectMethod(resultMap, hashMapPut, javaKey, javaMoveArray);
 
-    // Release local references
+
     env->DeleteLocalRef(javaKey);
     env->DeleteLocalRef(javaMoveArray);
   }
@@ -223,8 +216,8 @@ JNIEXPORT jobject JNICALL Java_main_Board_predictedMoves
 
 JNIEXPORT void JNICALL Java_main_Board_removeCaptured
   (JNIEnv *, jobject, jint row, jint col) {
-  board[row][col] = empty_val; // Mark cell as empty
-  if (whiteTurn) white--; // Update piece count if necessary
+  board[row][col] = empty_val;
+  if (whiteTurn) white--;
   else black--;
 }
 

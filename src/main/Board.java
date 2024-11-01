@@ -164,19 +164,17 @@ public class Board extends JFrame{
         String winnerName = winner == 2 ? "White" : "Black";
         String message = winnerName + " wins!";
 
-        // Create a dialog to display the winner and restart option
         int response = JOptionPane.showConfirmDialog(null, message, "Game Over", JOptionPane.OK_CANCEL_OPTION);
 
-        // If the user clicks the "OK" button, restart the game
         if (response == JOptionPane.OK_OPTION) {
             restartGame();
         }
     }
 
     public void restartGame() {
-        SwingUtilities.invokeLater(Board::new); // Reset the board
+        SwingUtilities.invokeLater(Board::new);
         System.out.println("Game restarted!");
-        restart();// Placeholder for your game restart logic
+        restart();
     }
 
     public void movePiece(Cell destButton, HashMap<String, int[][]> predicts) {
@@ -226,8 +224,8 @@ public class Board extends JFrame{
                 move(selectedButton.getRow(), selectedButton.getColumn(), destButton.getRow(), destButton.getColumn(), true);
             }
         }
-        selectedButton = null;  // Reset the selected button if no additional captures
-        clearPredictedMoves();   // Clear highlighted moves
+        selectedButton = null;
+        clearPredictedMoves();
 
         if (winner() != 0) {
             showWinnerDialog(winner());
@@ -321,7 +319,6 @@ public class Board extends JFrame{
     }
 
     public native boolean isValidPieceToSelect(int row, int col);
-
     public static native char[][] placingPieces();
     public native void move(int from_row, int from_col, int to_row, int to_col, boolean changeTurn);
     public native void removeCaptured(int row, int col);
