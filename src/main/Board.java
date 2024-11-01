@@ -24,11 +24,26 @@ public class Board extends JFrame{
         intializeBoard();
         setVisible(true);
         setFocusable(true);
+        initializeMenuBar();
 
         setFocusable(true);
         setFocusTraversalKeysEnabled(false);
         requestFocus();
         initializeKeyboardControls();
+    }
+
+    private void initializeMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu gameMenu = new JMenu("Game");
+        JMenuItem restartItem = new JMenuItem("Restart");
+
+        restartItem.addActionListener(e -> restartGame());
+
+        gameMenu.add(restartItem);
+        menuBar.add(gameMenu);
+
+        setJMenuBar(menuBar);
     }
 
     private void initializeKeyboardControls() {
@@ -72,6 +87,7 @@ public class Board extends JFrame{
                     }else if(isValidPieceToSelect(selectedRow, selectedCol)) {
                         HashMap<String, int[][]> predicts = predictedMoves(selectedRow, selectedCol);
                         selectedButton = clicked;
+                        board[selectedButton.getRow()][selectedButton.getColumn()].setBorderPainted(true);
         //                    System.out.println("color - " + selectedButton.getColor());
                         highlightPredictedMoves(predicts);
                     }
@@ -102,7 +118,7 @@ public class Board extends JFrame{
     }
 
     private void highlightCell(int row, int col) {
-        board[row][col].setBackground(Color.blue);
+        board[row][col].setBackground(Color.orange);
     }
 
     private void resetHighlight(int row, int col) {
@@ -235,6 +251,7 @@ public class Board extends JFrame{
             for (int col = 0; col < SIZE; col++) {
                 if ((row + col) % 2 == 1) {
                     board[row][col].setBackground(Color.lightGray);
+                    board[row][col].setBorderPainted(false);
                 }
             }
         }
@@ -290,12 +307,15 @@ public class Board extends JFrame{
                 move(selectedButton.getRow(), selectedButton.getColumn(), selectedButton.getRow(), selectedButton.getColumn(), true);
                 selectedButton.removeIcon();
                 removeCaptured(selectedButton.getRow(), selectedButton.getColumn());
+                clearPredictedMoves();
             } else if(captRule.length != 0 && (selectedButton.getRow() != captRule[0] && selectedButton.getColumn() != captRule[1])){
                 board[captRule[0]][captRule[1]].removeIcon();
                 removeCaptured(captRule[0], captRule[1]);
                 movePiece(clicked, predicts);
+                clearPredictedMoves();
             }else {
                 movePiece(clicked, predicts);
+                clearPredictedMoves();
             }
         }
     }
@@ -310,8 +330,8 @@ public class Board extends JFrame{
     public native void restart();
     public native char[][] displaying();
     public native boolean getTurn();
-    //methods for tests
 
+    //methods for tests
     public Cell[][] displayBoardTest(){
         return board;
     }
@@ -359,10 +379,9 @@ public class Board extends JFrame{
                     highlightPredictedMoves(predicts);
                 }
             }else{
-                clearPredictedMoves();
 
                 checkingCapturesRules(clicked);
-
+                clearPredictedMoves();
                 selectedButton = null;
                 if(winner() != 0){
                     showWinnerDialog(winner());
