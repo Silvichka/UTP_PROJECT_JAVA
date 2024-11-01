@@ -2,10 +2,7 @@ package main;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.util.HashMap;
 
 public class Board extends JFrame{
@@ -14,6 +11,7 @@ public class Board extends JFrame{
 
     private Cell[][] board;
     private Cell selectedButton;
+    private boolean isKeyboardMode;
 
     public Board() {
         setTitle("Checkers");
@@ -27,60 +25,80 @@ public class Board extends JFrame{
         setVisible(true);
         setFocusable(true);
 
+        initializeKeyboardControls();
+//        initializeMouseControls();
+    }
+
+    private void initializeKeyboardControls() {
+
         addKeyListener(new KeyAdapter() {
             private int selectedRow = 0;
             private int selectedCol = 0;
 
             @Override
             public void keyPressed(KeyEvent e) {
+                if (!isKeyboardMode) {
+                    switchToKeyboardMode();
+                }
+
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_UP:
-                        moveSelection(-1, 0); // Move up
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        moveSelection(1, 0); // Move down
-                        break;
-                    case KeyEvent.VK_LEFT:
-                        moveSelection(0, -1); // Move left
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        moveSelection(0, 1); // Move right
-                        break;
-                    case KeyEvent.VK_ENTER:
-                        handleSelection(); // Handle selection or move
-                        break;
+                    case KeyEvent.VK_UP -> moveSelection(-1, 0);
+                    case KeyEvent.VK_DOWN -> moveSelection(1, 0);
+                    case KeyEvent.VK_LEFT -> moveSelection(0, -1);
+                    case KeyEvent.VK_RIGHT -> moveSelection(0, 1);
+                    case KeyEvent.VK_ENTER -> handleSelection();
                 }
             }
 
-            // Update selected cell with arrow key navigation
             private void moveSelection(int rowOffset, int colOffset) {
                 int newRow = selectedRow + rowOffset;
                 int newCol = selectedCol + colOffset;
 
-                // Ensure new position is within board bounds
                 if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE) {
-                    // Reset background of the previous cell
                     resetHighlight(selectedRow, selectedCol);
-
-                    // Update selected position
                     selectedRow = newRow;
                     selectedCol = newCol;
-
-                    // Highlight the new selected cell
                     highlightCell(selectedRow, selectedCol);
                 }
             }
 
             private void handleSelection() {
-                Cell selectedCell = board[selectedRow][selectedCol];
-                // Simulate click on the cell
-                selectedCell.doClick();
+                Cell clicked = board[selectedRow][selectedCol];
+                if (selectedButton == null){
+                    if(!isValidPieceToSelect(selectedRow, selectedCol)){
+                        selectedButton = null;
+                    }else if(isValidPieceToSelect(selectedRow, selectedCol)) {
+                        HashMap<String, int[][]> predicts = predictedMoves(selectedRow, selectedCol);
+                        selectedButton = clicked;
+        //                    System.out.println("color - " + selectedButton.getColor());
+                        highlightPredictedMoves(predicts);
+                    }
+                }else{
+                    checkingCapturesRules(clicked);
+
+                    selectedButton = null;
+                    if(winner() != 0){
+                        showWinnerDialog(winner());
+                    }
+                }
             }
         });
     }
 
+    private void switchToKeyboardMode() {
+        isKeyboardMode = true;
+        clearPredictedMoves();
+        selectedButton = null;
+    }
+
+    private void switchToMouseMode() {
+        isKeyboardMode = false;
+        clearPredictedMoves();
+        selectedButton = null;
+    }
+
     private void highlightCell(int row, int col) {
-        board[row][col].setBackground(Color.blue); // Highlight with a different color
+        board[row][col].setBackground(Color.blue);
     }
 
     private void resetHighlight(int row, int col) {
@@ -227,19 +245,6 @@ public class Board extends JFrame{
         }
     }
 
-    public void displayJava(){
-        char[][] c = displaying();
-
-        for(char[] x : c){
-            for(char y : x){
-                System.out.print(y);
-            }
-            System.out.println();
-        }
-        System.out.println();
-        System.out.println();
-    }
-
     public int winner(){
         int white = 0;
         int black = 0;
@@ -291,6 +296,7 @@ public class Board extends JFrame{
     }
 
     public native boolean isValidPieceToSelect(int row, int col);
+
     public static native char[][] placingPieces();
     public native void move(int from_row, int from_col, int to_row, int to_col, boolean changeTurn);
     public native void removeCaptured(int row, int col);
@@ -299,13 +305,25 @@ public class Board extends JFrame{
     public native void restart();
     public native char[][] displaying();
     public native boolean getTurn();
-
     //methods for tests
+
     public Cell[][] displayBoardTest(){
         return board;
     }
     public void setSelectedButton(Cell selected){
         selectedButton = selected;
+    }
+    public void displayJava(){
+        char[][] c = displaying();
+
+        for(char[] x : c){
+            for(char y : x){
+                System.out.print(y);
+            }
+            System.out.println();
+        }
+        System.out.println();
+        System.out.println();
     }
 
 
@@ -320,9 +338,11 @@ public class Board extends JFrame{
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            if(isKeyboardMode)switchToMouseMode();
             Cell clicked = board[row][col];
 
             if (selectedButton == null){
+                if (isKeyboardMode) switchToMouseMode();
                 if(!isValidPieceToSelect(row, col)){
                     selectedButton = null;
                 }else if(isValidPieceToSelect(row, col)) {
